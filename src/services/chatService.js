@@ -16,9 +16,26 @@ exports.sendMessage = async (chatId, message) => {
         [chatId, 'user', message]
     );
 
-    // 2. Simulasi jawaban AI (DUMMY)
-    // Nanti bagian ini diganti dengan pemanggilan API Llama/Chatbot
-    const aiReply = `Halo! Ini adalah jawaban otomatis (dummy). Anda tadi mengirim: "${message}"`;
+    // 2. Panggil API Groq
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            messages: [{ role: 'user', content: message }],
+            model: 'llama-3.1-8b-instant'
+        })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error?.message || 'Gagal memanggil API Groq');
+    }
+
+    const aiReply = data.choices[0].message.content;
 
     // 3. Simpan jawaban AI
     const resultAi = await pool.query(
