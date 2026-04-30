@@ -16,7 +16,13 @@ exports.sendMessage = async (chatId, message) => {
         [chatId, 'user', message]
     );
 
-    // 2. Panggil API Groq
+    // 2. Update title chat jika ini pesan pertama (jika title masih 'New Chat' atau null)
+    await pool.query(
+        "UPDATE chats SET title = $1, updated_at = NOW() WHERE id = $2 AND (title = 'New Chat' OR title IS NULL)",
+        [message.length > 50 ? message.substring(0, 50) + '...' : message, chatId]
+    );
+
+    // 3. Panggil API Groq
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -37,7 +43,7 @@ exports.sendMessage = async (chatId, message) => {
 
     const aiReply = data.choices[0].message.content;
 
-    // 3. Simpan jawaban AI
+    // 4. Simpan jawaban AI
     const resultAi = await pool.query(
         'INSERT INTO messages(chat_id, role, content) VALUES($1,$2,$3) RETURNING *',
         [chatId, 'ai', aiReply]
@@ -54,6 +60,15 @@ exports.getMessages = async (chatId) => {
     const result = await pool.query(
         'SELECT * FROM messages WHERE chat_id=$1 ORDER BY created_at ASC',
         [chatId]
+    );
+
+    return result.rows;
+};
+
+exports.getChats = async (userId) => {
+    const result = await pool.query(
+        'SELECT * FROM chats WHERE user_id=$1 ORDER BY updated_at DESC',
+        [userId]
     );
 
     return result.rows;

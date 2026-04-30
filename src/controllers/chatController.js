@@ -58,3 +58,20 @@ exports.getMessages = async (req, res) => {
         });
     }
 };
+
+exports.getChats = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const chats = await chatService.getChats(userId);
+
+        res.json({
+            status: 'success',
+            data: chats
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
+    }
+};
